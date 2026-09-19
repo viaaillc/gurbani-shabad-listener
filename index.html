@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gurbani Shabad Listener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#11142a; --bg-soft:#171b39; --card:#1d2245; --card-hi:#242a56;
+    --border:rgba(255,255,255,.09); --border-hi:rgba(227,165,72,.35);
+    --text:#f4f0e6; --text-dim:#aab0d4; --text-faint:#6c74a1;
+    --accent:#e3a548; --accent-ink:#3a2607; --good:#5fbf8f; --good-soft:rgba(95,191,143,.14);
+    --danger:#e6836f; --shadow: 0 10px 30px -12px rgba(0,0,0,.55);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#faf6ec; --bg-soft:#f2ecdb; --card:#ffffff; --card-hi:#fff8ea;
+      --border:rgba(20,20,30,.10); --border-hi:rgba(184,120,20,.35);
+      --text:#241f14; --text-dim:#5b5642; --text-faint:#8b8468;
+      --accent:#b8780f; --accent-ink:#fff8ea; --good:#2f8f63; --good-soft:rgba(47,143,99,.10);
+      --danger:#c14b34; --shadow: 0 10px 26px -14px rgba(60,40,10,.22);
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{
+    font-family:"Inter",system-ui,-apple-system,sans-serif;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom,0px));
+    padding-top: env(safe-area-inset-top,0px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding-inline:18px;}
+  header.top{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+    background:linear-gradient(180deg,var(--bg) 78%, transparent);
+    padding-block:18px 10px;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  h1{
+    font-family:"Fraunces",serif; font-weight:600; font-size:1.5rem; margin:0;
+    letter-spacing:.2px;
+  }
+  .ik{color:var(--accent);}
+  .tag{font-size:.72rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.09em; margin-top:2px;}
+  main{padding-top:6px;}
+  section{margin-bottom:18px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:16px; box-shadow:var(--shadow);
+  }
+  .listen-card{display:flex; flex-direction:column; gap:14px;}
+  .listen-row{display:flex; align-items:center; gap:14px;}
+  button{font-family:inherit; cursor:pointer;}
+  .mic-btn{
+    flex:none; width:64px; height:64px; border-radius:50%; border:none;
+    background:var(--accent); color:var(--accent-ink); font-size:1.5rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 18px -6px rgba(227,165,72,.55);
+    transition:transform .15s ease, box-shadow .15s ease;
+    position:relative;
+  }
+  .mic-btn:active{transform:scale(.94);}
+  .mic-btn.live{background:var(--danger); box-shadow:0 0 0 0 rgba(230,131,111,.6); animation:pulse 1.6s infinite;}
+  .mic-btn:disabled{opacity:.4; cursor:default;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(230,131,111,.45);}
+    70%{box-shadow:0 0 0 14px rgba(230,131,111,0);}
+    100%{box-shadow:0 0 0 0 rgba(230,131,111,0);}
+  }
+  .listen-meta{flex:1; min-width:0;}
+  .status-line{font-weight:600; font-size:.98rem;}
+  .status-sub{color:var(--text-dim); font-size:.82rem; margin-top:2px;}
+  select, input[type=text]{
+    background:var(--bg-soft); color:var(--text); border:1px solid var(--border);
+    border-radius:10px; padding:9px 10px; font-size:.85rem; font-family:inherit;
+  }
+  .row-controls{display:flex; gap:8px; flex-wrap:wrap;}
+  .row-controls > *{flex:1; min-width:120px;}
+  .transcript{
+    font-family:"Noto Sans Gurmukhi","Inter",sans-serif; font-size:1.05rem; line-height:1.55;
+    min-height:2.6em; color:var(--text); cursor:pointer;
+  }
+  .transcript .interim{color:var(--text-faint); font-style:italic;}
+  .hint{color:var(--text-faint); font-size:.78rem; line-height:1.5;}
+  .hint b{color:var(--text-dim);}
+  h2.section-title{
+    font-family:"Fraunces",serif; font-weight:600; font-size:1.05rem; margin:0 0 10px 2px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .badge{
+    font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    background:var(--good-soft); color:var(--good); border-radius:999px; padding:3px 9px;
+  }
+  .badge.off{background:rgba(255,255,255,.07); color:var(--text-faint);}
+  .empty{color:var(--text-faint); font-size:.85rem; padding:6px 2px;}
+  .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;}
+  .btn{
+    border-radius:10px; padding:9px 14px; font-size:.85rem; font-weight:600; border:1px solid var(--border);
+    background:var(--bg-soft); color:var(--text);
+  }
+  .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent;}
+  .btn.block{width:100%; text-align:center; padding:13px 14px; font-size:.92rem;}
+  a.btn{text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px;}
+  .history{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{
+    font-size:.78rem; background:var(--bg-soft); border:1px solid var(--border); border-radius:999px;
+    padding:6px 12px; color:var(--text-dim);
+  }
+  .stm-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  footer.note{color:var(--text-faint); font-size:.74rem; text-align:center; padding:22px 18px 4px; line-height:1.6;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--border-hi); border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1><span class="ik">ੴ</span> Gurbani Shabad Listener</h1>
+    </div>
+    <div class="tag">Listen at the gurdwara · follow along on SikhiToTheMax</div>
+  </header>
+
+  <main>
+    <section class="card listen-card">
+      <div class="listen-row">
+        <button class="mic-btn" id="micBtn" aria-label="Start listening">🎤</button>
+        <div class="listen-meta">
+          <div class="status-line" id="statusLine">Not listening</div>
+          <div class="status-sub" id="statusSub">Tap the mic when kirtan starts</div>
+        </div>
+      </div>
+      <div class="row-controls">
+        <select id="langSelect" aria-label="Recognition language">
+          <option value="pa-IN">Punjabi (pa-IN)</option>
+          <option value="hi-IN">Hindi (hi-IN)</option>
+          <option value="en-IN">English / Romanized (en-IN)</option>
+        </select>
+        <select id="scriptSelect" aria-label="Search script">
+          <option value="auto">Auto-detect script</option>
+          <option value="gurmukhi">Force Gurmukhi (first-letter) search</option>
+          <option value="english">Force English search</option>
+        </select>
+      </div>
+      <div class="transcript" id="transcriptBox" title="Tap to copy into the search box below">
+        <span class="empty">Live transcript will appear here once you start listening…</span>
+      </div>
+      <div class="hint">Works best in <b>Chrome</b> (desktop or Android) with a live internet connection. If Chrome keeps re-asking for the microphone, open the site's ⓘ or lock icon next to the address bar → <b>Microphone</b> → <b>Allow</b>, instead of "Allow once" — that stops the repeated prompts. Sung kirtan with tabla/harmonium is hard for any speech engine, so use manual search whenever it's not catching cleanly.</div>
+    </section>
+
+    <section class="card">
+      <div class="stm-row">
+        <h2 class="section-title" style="margin:0;">SikhiToTheMax</h2>
+        <span class="badge off" id="stmStatus">Not linked yet</span>
+      </div>
+      <div class="row-controls" style="margin-bottom:10px;">
+        <input type="text" id="manualInput" placeholder="e.g. satguru sevi, or ਸਤਿਗੁਰੁ ਸੇਵੀ" style="flex:2;">
+        <button class="btn primary" id="manualSearchBtn" style="flex:none;">Search</button>
+      </div>
+      <button class="btn block" id="stmLinkBtn" type="button">🔗 Open a SikhiToTheMax tab to follow along</button>
+      <div class="hint" style="margin-top:10px;">Tap once to open the tab — after that, every new phrase caught while listening updates that same tab automatically. For Gurmukhi, this searches by each word's <b>first letter</b> rather than the full spelling — sung Gurbani is usually heard in modern pronunciation, while the written text keeps classical word-endings, so an exact-spelling search misses far more often than a first-letter one does.</div>
+      <div class="history" id="historyRow" style="margin-top:12px;"></div>
+    </section>
+  </main>
+
+  <footer class="note">
+    Lookup and follow-along happen on SikhiToTheMax itself.<br>
+    This is a listening aid, not a substitute for maryada — always follow the raagi and sangat.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const els = {
+    micBtn: document.getElementById('micBtn'),
+    statusLine: document.getElementById('statusLine'),
+    statusSub: document.getElementById('statusSub'),
+    transcriptBox: document.getElementById('transcriptBox'),
+    langSelect: document.getElementById('langSelect'),
+    scriptSelect: document.getElementById('scriptSelect'),
+    manualInput: document.getElementById('manualInput'),
+    manualSearchBtn: document.getElementById('manualSearchBtn'),
+    historyRow: document.getElementById('historyRow'),
+    stmLinkBtn: document.getElementById('stmLinkBtn'),
+    stmStatus: document.getElementById('stmStatus'),
+  };
+
+  const GURMUKHI_RE = /[਀-੿]/;
+  let history = [];
+
+  try{
+    const savedLang = localStorage.getItem('gsl_lang');
+    const savedScript = localStorage.getItem('gsl_script');
+    if(savedLang) els.langSelect.value = savedLang;
+    if(savedScript) els.scriptSelect.value = savedScript;
+    const savedHist = JSON.parse(localStorage.getItem('gsl_history') || "[]");
+    if(Array.isArray(savedHist)) history = savedHist;
+  }catch(e){}
+  renderHistory();
+
+  els.langSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('gsl_lang', els.langSelect.value); }catch(e){} if(recognizing) restartRecognition(); });
+  els.scriptSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('gsl_script', els.scriptSelect.value); }catch(e){} });
+
+  // ---------- SikhiToTheMax linking ----------
+  // We keep a reference to one already-open tab/window. Opening it the first
+  // time has to happen from a real click (browsers block popups from timers),
+  // but once we hold the reference, navigating IT from a timer is allowed —
+  // that's how auto-updates while listening work without spamming new tabs.
+  let stmWin = null;
+
+  // Gurbani search apps (STM included) work best as an "anchor" search: send
+  // just the FIRST letter of each word, not the fully-spelled word. That's
+  // what fixes wrong-spelling misses — sung/spoken Gurbani is usually heard
+  // with modern pronunciation, while the written text uses classical
+  // grammatical word-endings (e.g. ਸਤਿਗੁਰ vs ਸਤਿਗੁਰੁ). Full-word search
+  // requires an exact match including those endings; first-letter search
+  // only needs the word's opening sound, which almost never changes.
+  function firstLettersOf(text){
+    return text.split(/\s+/).filter(Boolean).map(w => w[0]).join("");
+  }
+
+  function buildStmUrl(query){
+    const mode = els.scriptSelect.value;
+    const isGurmukhi = mode === 'gurmukhi' || (mode === 'auto' && GURMUKHI_RE.test(query));
+    if(isGurmukhi){
+      const anchor = firstLettersOf(query);
+      // type=1: first letters, anywhere in the line — most forgiving mode
+      return "https://www.sikhitothemax.org/search?q=" + encodeURIComponent(anchor) + "&type=1&writer=all&offset=1";
+    }
+    // English/romanized input: let STM's own engine auto-handle it (this is
+    // its own well-tuned feature, not something an anchor trick helps with).
+    return "https://www.sikhitothemax.org/search?q=" + encodeURIComponent(query) + "&writer=all&offset=1";
+  }
+
+  function openOnStm(query){
+    if(!query) return;
+    const url = buildStmUrl(query);
+    if(stmWin && !stmWin.closed){
+      stmWin.location.href = url;
+      try{ stmWin.focus(); }catch(e){}
+    } else {
+      stmWin = window.open(url, 'sttmFollow');
+    }
+    updateStmStatus();
+    addHistory(query);
+  }
+
+  function updateStmStatus(){
+    if(stmWin && !stmWin.closed){
+      els.stmStatus.textContent = "Linked — updating live";
+      els.stmStatus.classList.remove('off');
+      els.stmLinkBtn.textContent = "🔗 Re-open the SikhiToTheMax tab";
+    } else {
+      els.stmStatus.textContent = "Not linked yet";
+      els.stmStatus.classList.add('off');
+      els.stmLinkBtn.textContent = "🔗 Open a SikhiToTheMax tab to follow along";
+    }
+  }
+
+  els.stmLinkBtn.addEventListener('click', ()=>{
+    const seed = els.manualInput.value.trim();
+    openOnStm(seed || "waheguru"); // opens a real tab now; auto-updates take over once words come in
+  });
+
+  els.manualSearchBtn.addEventListener('click', ()=>{
+    const q = els.manualInput.value.trim();
+    if(q) openOnStm(q);
+  });
+  els.manualInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ const q = els.manualInput.value.trim(); if(q) openOnStm(q); }
+  });
+
+  // Tapping the live transcript copies it straight into the search box so you
+  // can edit it before searching, instead of only ever auto-searching.
+  els.transcriptBox.addEventListener('click', ()=>{
+    const text = els.transcriptBox.textContent.trim();
+    if(text) els.manualInput.value = text;
+  });
+
+  // ---------- Speech recognition ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let recognizing = false;
+  let wantListening = false;
+  let starting = false;
+  let finalBuffer = "";
+  let latestInterim = "";
+  let debounceTimer = null;
+  let clusterTimer = null;
+  let lastAutoQuery = "";
+  let lastResultTime = 0;
+  let listenStartTime = 0;
+  let warnedNoSpeech = false;
+  let lastErrorCode = "";
+  let recentEndTimes = []; // for detecting a fast start/error/end loop
+  const CLUSTER_SIZE = 4;      // aim for the middle of the 3-5 word range
+  const CLUSTER_MIN = 3;
+  const CLUSTER_MAX = 5;
+  const CLUSTER_INTERVAL_MS = 1500; // re-check for a new cluster this often, not just on pauses
+
+  if(!SR){
+    els.statusLine.textContent = "Live listening not supported here";
+    els.statusSub.textContent = "Open this page in Chrome to use live listening — manual search below still works.";
+    els.micBtn.disabled = true;
+  } else {
+    setupRecognition();
+  }
+
+  function setupRecognition(){
+    recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.lang = els.langSelect.value;
+
+    recognition.onstart = ()=>{
+      recognizing = true;
+      starting = false;
+      listenStartTime = Date.now();
+      lastResultTime = Date.now();
+      els.micBtn.classList.add('live');
+      els.micBtn.textContent = "⏸";
+      els.statusLine.textContent = "Listening…";
+      els.statusSub.textContent = "Catching words as kirtan plays";
+      clearInterval(clusterTimer);
+      clusterTimer = setInterval(()=>{ checkAndSearchCluster(); checkSilenceWatchdog(); }, CLUSTER_INTERVAL_MS);
+    };
+
+    recognition.onresult = (event)=>{
+      lastResultTime = Date.now();
+      recentEndTimes = []; // real speech came through, so this isn't a fail-loop
+      let interim = "";
+      for(let i = event.resultIndex; i < event.results.length; i++){
+        const r = event.results[i];
+        if(r.isFinal){
+          finalBuffer = (finalBuffer + " " + r[0].transcript).trim();
+          // keep buffer to last ~20 words so a cluster can always find fresh words
+          const words = finalBuffer.split(/\s+/);
+          if(words.length > 20) finalBuffer = words.slice(-20).join(" ");
+        } else {
+          interim += r[0].transcript;
+        }
+      }
+      latestInterim = interim;
+      renderTranscript(interim);
+      scheduleSearch(); // debounced quick check after every chunk, final or interim
+    };
+
+    recognition.onerror = (e)=>{
+      lastErrorCode = e.error || "unknown";
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        els.statusLine.textContent = "Microphone blocked";
+        els.statusSub.textContent = "Allow microphone access in your browser settings, then tap the mic again.";
+        wantListening = false;
+        stopUI();
+      }
+      // other errors (no-speech, network, aborted, language-not-supported…)
+      // are handled by onend below, which also does the restart.
+    };
+
+    recognition.onend = ()=>{
+      recognizing = false;
+      if(wantListening && !starting){
+        // Detect a fast start→error→end loop (e.g. this browser/OS simply
+        // can't run recognition in the selected language at all) instead of
+        // restarting forever — that loop is *itself* what re-triggers the
+        // mic permission indicator every couple of seconds.
+        const now = Date.now();
+        recentEndTimes.push(now);
+        recentEndTimes = recentEndTimes.filter(t => now - t < 6000);
+        if(recentEndTimes.length >= 4){
+          wantListening = false;
+          recentEndTimes = [];
+          const langLabel = els.langSelect.options[els.langSelect.selectedIndex].text;
+          els.statusLine.textContent = "Can't stay listening in " + langLabel;
+          els.statusSub.textContent = "It keeps stopping immediately" + (lastErrorCode ? " (browser reports: \"" + lastErrorCode + "\")" : "") + " — this browser/device most likely can't run live speech recognition in this language. Try Punjabi, or use manual search below.";
+          stopUI();
+          return;
+        }
+        // Mobile Chrome ends "continuous" sessions after a short pause far
+        // more often than desktop does — restart seamlessly, with a small
+        // delay so we don't hammer the mic and trigger repeat permission
+        // checks on phones that don't remember "always allow".
+        starting = true;
+        setTimeout(()=>{
+          starting = false;
+          if(wantListening){ try{ recognition.start(); }catch(e){ starting=false; } }
+        }, 350);
+      } else if(!wantListening){
+        stopUI();
+      }
+    };
+  }
+
+  function restartRecognition(){
+    if(!recognition) return;
+    try{ recognition.stop(); }catch(e){}
+    warnedNoSpeech = false;
+    setTimeout(()=>{
+      recognition.lang = els.langSelect.value;
+      if(wantListening){ try{ recognition.start(); }catch(e){} }
+    }, 250);
+  }
+
+  function stopUI(){
+    els.micBtn.classList.remove('live');
+    els.micBtn.textContent = "🎤";
+    els.statusLine.textContent = "Not listening";
+    els.statusSub.textContent = "Tap the mic when kirtan starts";
+    clearInterval(clusterTimer);
+    clusterTimer = null;
+  }
+
+  els.micBtn.addEventListener('click', ()=>{
+    if(!recognition) return;
+    if(!wantListening){
+      wantListening = true;
+      finalBuffer = "";
+      latestInterim = "";
+      lastAutoQuery = "";
+      warnedNoSpeech = false;
+      recentEndTimes = [];
+      lastErrorCode = "";
+      recognition.lang = els.langSelect.value;
+      try{ recognition.start(); }catch(e){}
+    } else {
+      wantListening = false;
+      try{ recognition.stop(); }catch(e){}
+      stopUI();
+    }
+  });
+
+  function renderTranscript(interim){
+    const finalPart = finalBuffer ? escapeHtml(finalBuffer) + " " : "";
+    const interimPart = interim ? '<span class="interim">' + escapeHtml(interim) + '</span>' : "";
+    els.transcriptBox.innerHTML = (finalPart + interimPart) || '<span class="empty">Listening for words…</span>';
+  }
+
+  function scheduleSearch(){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(checkAndSearchCluster, 500);
+  }
+
+  // If we've been "listening" for a while with zero recognized speech at
+  // all (not even interim junk), the mic itself is fine — it's almost
+  // always that this device has no speech-recognition language model for
+  // the selected language, which is a phone setting, not something this
+  // page can fix. Surface that instead of silently doing nothing.
+  function checkSilenceWatchdog(){
+    if(warnedNoSpeech || !recognizing) return;
+    const idleFor = Date.now() - lastResultTime;
+    const listeningFor = Date.now() - listenStartTime;
+    if(listeningFor > 9000 && idleFor > 9000){
+      warnedNoSpeech = true;
+      const langLabel = els.langSelect.options[els.langSelect.selectedIndex].text;
+      els.statusSub.textContent = "No speech recognized yet in " + langLabel + " — this is usually a missing on-device speech language pack, not a bug here. Check your phone's language/speech settings, or switch languages above.";
+    }
+  }
+
+  // Pulls a 3-5 word cluster from whatever has come through (final + interim),
+  // drops it into the search box, and — if a SikhiToTheMax tab is already
+  // linked — auto-navigates it. Runs both right after speech comes in and on
+  // a timer, so gaps between recognized words (common with sung kirtan)
+  // don't stall the matching.
+  function checkAndSearchCluster(){
+    const combined = (finalBuffer + " " + latestInterim).trim();
+    const words = combined.split(/\s+/).filter(Boolean);
+    if(words.length < CLUSTER_MIN) return;
+    const take = Math.min(CLUSTER_MAX, Math.max(CLUSTER_MIN, words.length >= CLUSTER_SIZE ? CLUSTER_SIZE : words.length));
+    const queryToUse = words.slice(-take).join(" ");
+    if(queryToUse === lastAutoQuery) return;
+    lastAutoQuery = queryToUse;
+    els.manualInput.value = queryToUse;
+    if(stmWin && !stmWin.closed){
+      openOnStm(queryToUse); // safe: navigating a window we already hold, not a fresh popup
+    }
+  }
+
+  // ---------- History ----------
+  function addHistory(query){
+    history = [query, ...history.filter(h => h !== query)].slice(0, 8);
+    try{ localStorage.setItem('gsl_history', JSON.stringify(history)); }catch(e){}
+    renderHistory();
+  }
+
+  function renderHistory(){
+    els.historyRow.innerHTML = "";
+    history.forEach(q=>{
+      const chip = document.createElement('button');
+      chip.className = "chip";
+      chip.type = "button";
+      chip.textContent = q;
+      chip.addEventListener('click', ()=>{ els.manualInput.value = q; openOnStm(q); });
+      els.historyRow.appendChild(chip);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  updateStmStatus();
+})();
+</script>
+</body>
+</html>
